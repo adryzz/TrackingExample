@@ -1,6 +1,9 @@
+using CommandLine;
+
 namespace TrackingExample
 {
-    public class ListCamerasOptions
+    [Verb("--list-cameras", HelpText = "Lists all the available cameras.")]
+    public class ListCamerasOptions : GlobalOptions
     {
         
     }
