@@ -182,8 +182,8 @@ namespace TrackingExample
         {
             Camera?.Dispose();
             StdOut?.Dispose();
-            Poller?.Dispose();
             Graph?.Dispose();
+            Poller?.Dispose();
             Converter?.Dispose();
         }
     }
