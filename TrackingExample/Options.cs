@@ -11,6 +11,15 @@ namespace TrackingExample
         [Option(longName:"graph", shortName:'g', Required = true, HelpText = "The path of the mediapipe graph to use.")]
         public string Graph { get; set; }
         
+        [Option(longName:"landmarks-output", shortName:'l', HelpText = "The path where the landmarks will be saved at")]
+        public string? LandmarksPath { get; set; }
+        
+        [Option(longName:"output-stream", shortName:'o', HelpText = "The path where the landmarks will be saved at", Default = "multi_face_landmarks")]
+        public string OutputStream { get; set; }
+        
+        /// <summary>
+        /// Ignore this
+        /// </summary>
         [Option(longName:"list-cameras", HelpText = "Lists all available cameras")]
         public bool ListCameras { get; set; }
     }

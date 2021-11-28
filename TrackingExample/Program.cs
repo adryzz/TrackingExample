@@ -1,6 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using Akihabara.External;
+using Akihabara.Framework;
+using Akihabara.Framework.ImageFormat;
+using Akihabara.Framework.Packet;
+using Akihabara.Framework.Port;
+using Akihabara.Framework.Protobuf;
 using CommandLine;
 using FFmpeg.AutoGen;
 using SeeShark;
@@ -10,9 +18,22 @@ namespace TrackingExample
 {
     public static class Program
     {
-        public static Camera Camera;
+        const string kInputStream = "input_video";
+        const string kOutputStream = "output_video";
+        
+        static Camera Camera;
 
-        public static string Graph;
+        static string GraphPath;
+
+        static Stream StdOut;
+
+        static CalculatorGraph Graph;
+
+        static OutputStreamPoller<ImageFrame> Poller;
+
+        static string? LandmarksOutputPath;
+
+        static string OutputStream;
         
         public static void Main(string[] args)
         {
@@ -34,8 +55,42 @@ namespace TrackingExample
             
             //set global options like graph path and camera
             SetOptions((Options)result.Value);
+
+            Camera.NewFrameHandler += OnFrame;
+
+            InitializeMediapipe();
             
             OnExit();
+        }
+
+        private static void InitializeMediapipe()
+        {
+            string GraphText = File.ReadAllText(GraphPath);
+            Glog.Initialize("stuff", "stuff");
+            Graph = new CalculatorGraph(GraphText);
+            
+            Poller = Graph.AddOutputStreamPoller<ImageFrame>(kOutputStream).Value();
+            
+            var jserOptions = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
+            Graph.ObserveOutputStream<NormalizedLandmarkListVectorPacket, List<NormalizedLandmarkList>>(OutputStream, (packet) => {
+                var timestamp = packet.Timestamp().Value();
+                Glog.Log(Glog.Severity.Info, $"Got landmarks at timestamp {timestamp}");
+
+                var landmarks = packet.Get();
+
+                if (LandmarksOutputPath != null)
+                {
+                    var jsonLandmarks = JsonSerializer.Serialize(landmarks, jserOptions);
+                    File.WriteAllText(LandmarksOutputPath, jsonLandmarks);
+                }
+
+                return Status.Ok();
+            }, out var callbackHandle).AssertOk();
+        }
+
+        private static void OnFrame(object? sender, FrameEventArgs e)
+        {
+            
         }
 
         static void SetOptions(Options options)
@@ -61,6 +116,14 @@ namespace TrackingExample
                 Console.WriteLine("The specified graph does not exist.");
                 OnExit();
             }
+
+            GraphPath = options.Graph;
+
+            LandmarksOutputPath = options.LandmarksPath;
+
+            OutputStream = options.OutputStream;
+
+            StdOut = new BufferedStream(Console.OpenStandardOutput());
         }
         
         static void SetGlobalOptions(GlobalOptions goptions)
@@ -82,6 +145,7 @@ namespace TrackingExample
         static void OnExit()
         {
             Camera?.Dispose();
+            StdOut?.Dispose();
         }
     }
 }

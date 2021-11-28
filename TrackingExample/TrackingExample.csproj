@@ -8,6 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Akihabara" Version="2021.1029.0" />
+      <PackageReference Include="Akihabara.Runtime.Linux_x64.CPU" Version="2021.1030.0" />
+      <PackageReference Include="Akihabara.Runtime.Windows_x64.CPU" Version="2021.1030.0" />
       <PackageReference Include="CommandLineParser" Version="2.9.0-preview1" />
       <PackageReference Include="SeeShark" Version="1.0.0" />
     </ItemGroup>
