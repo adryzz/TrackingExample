@@ -13,6 +13,7 @@ using CommandLine;
 using FFmpeg.AutoGen;
 using SeeShark;
 using SeeShark.FFmpeg;
+using UnmanageUtility;
 
 namespace TrackingExample
 {
@@ -27,13 +28,17 @@ namespace TrackingExample
 
         static Stream StdOut;
 
-        static CalculatorGraph Graph;
+        static CalculatorGraph? Graph;
 
-        static OutputStreamPoller<ImageFrame> Poller;
+        static OutputStreamPoller<ImageFrame>? Poller;
 
         static string? LandmarksOutputPath;
 
         static string OutputStream;
+        
+        static FrameConverter? Converter;
+
+        static int PacketTimestamp = 0;
         
         public static void Main(string[] args)
         {
@@ -59,15 +64,32 @@ namespace TrackingExample
             Camera.NewFrameHandler += OnFrame;
 
             InitializeMediapipe();
+
+            Graph.StartRun().AssertOk();
+            
+            Camera.StartCapture();
+            
+            for (;;)
+            {
+                if (Poller != null)
+                {
+                    var packet = new ImageFramePacket();
+                    if (!Poller.Next(packet))
+                        break;
+                    var frame = packet.Get();
+                    byte[] buffer = frame.CopyToByteBuffer(frame.WidthStep() * frame.Height());
+                    StdOut.Write(buffer, 0, buffer.Length);
+                }
+            }
             
             OnExit();
         }
 
         private static void InitializeMediapipe()
         {
-            string GraphText = File.ReadAllText(GraphPath);
+            string graphText = File.ReadAllText(GraphPath);
             Glog.Initialize("stuff", "stuff");
-            Graph = new CalculatorGraph(GraphText);
+            Graph = new CalculatorGraph(graphText);
             
             Poller = Graph.AddOutputStreamPoller<ImageFrame>(kOutputStream).Value();
             
@@ -90,7 +112,21 @@ namespace TrackingExample
 
         private static void OnFrame(object? sender, FrameEventArgs e)
         {
+            var frame = e.Frame;
+            if (Converter == null)
+            {
+                Converter = new FrameConverter(frame, PixelFormat.Rgba);
+            }
             
+            Frame cFrame = Converter.Convert(frame);
+            var pixelData = new UnmanagedArray<byte>(cFrame.RawData);
+
+            var inputFrame = new ImageFrame(ImageFormat.Format.Srgba, cFrame.Width, cFrame.Height, cFrame.WidthStep,
+                pixelData);
+            
+            var inputPacket = new ImageFramePacket(inputFrame, new Timestamp(PacketTimestamp++));
+
+            Graph?.AddPacketToInputStream(kInputStream, inputPacket).AssertOk();
         }
 
         static void SetOptions(Options options)
@@ -146,6 +182,9 @@ namespace TrackingExample
         {
             Camera?.Dispose();
             StdOut?.Dispose();
+            Poller?.Dispose();
+            Graph?.Dispose();
+            Converter?.Dispose();
         }
     }
 }
