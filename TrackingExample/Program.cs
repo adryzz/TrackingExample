@@ -117,6 +117,11 @@ namespace TrackingExample
             {
                 Converter = new FrameConverter(frame, PixelFormat.Rgba);
             }
+
+            if (e.Status != DecodeStatus.NewFrame)
+            {
+                return;
+            }
             
             Frame cFrame = Converter.Convert(frame);
             var pixelData = new UnmanagedArray<byte>(cFrame.RawData);
