@@ -15,4 +15,10 @@
       <PackageReference Include="SeeShark" Version="1.0.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="Moetion, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <HintPath>..\..\Moetion\Moetion\bin\Debug\net6.0\Moetion.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>

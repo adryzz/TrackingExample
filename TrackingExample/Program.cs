@@ -11,6 +11,9 @@ using Akihabara.Framework.Port;
 using Akihabara.Framework.Protobuf;
 using CommandLine;
 using FFmpeg.AutoGen;
+using Moetion;
+using Moetion.Face;
+using Moetion.Hands;
 using SeeShark;
 using SeeShark.FFmpeg;
 using UnmanageUtility;
@@ -33,6 +36,8 @@ namespace TrackingExample
         static OutputStreamPoller<ImageFrame>? Poller;
 
         static string? LandmarksOutputPath;
+        
+        static string? ProcessedLandmarksOutputPath;
 
         static string OutputStream;
         
@@ -106,6 +111,39 @@ namespace TrackingExample
                     File.WriteAllText(LandmarksOutputPath, jsonLandmarks);
                 }
 
+                if (ProcessedLandmarksOutputPath != null)
+                {
+                    if (landmarks.Count > 0)
+                    {
+                        if (landmarks[0].Landmark.Count == 468)
+                        {
+                            //face
+                            Face f = FaceSolver.Solve(landmarks[0]);
+                            
+                            var jsonLandmarks = JsonSerializer.Serialize(f, jserOptions);
+                            File.WriteAllText(ProcessedLandmarksOutputPath, jsonLandmarks);
+                        }
+                        else
+                        {
+                            if (landmarks.Count == 2)
+                            {
+                                Hand left = HandSolver.Solve(landmarks[0], Side.Left);
+                                Hand right = HandSolver.Solve(landmarks[1], Side.Right);
+                                
+                                var jsonLandmarks = JsonSerializer.Serialize(new {left, right}, jserOptions);
+                                File.WriteAllText(ProcessedLandmarksOutputPath, jsonLandmarks);
+                            }
+                            else
+                            {
+                                Hand hand = HandSolver.Solve(landmarks[0], Side.Left);
+                                
+                                var jsonLandmarks = JsonSerializer.Serialize(hand, jserOptions);
+                                File.WriteAllText(ProcessedLandmarksOutputPath, jsonLandmarks);
+                            }
+                        }
+                    }
+                }
+
                 return Status.Ok();
             }, out var callbackHandle).AssertOk();
         }
@@ -161,6 +199,8 @@ namespace TrackingExample
             GraphPath = options.Graph;
 
             LandmarksOutputPath = options.LandmarksPath;
+
+            ProcessedLandmarksOutputPath = options.ProcessedLandmarksPath;
 
             OutputStream = options.OutputStream;
 

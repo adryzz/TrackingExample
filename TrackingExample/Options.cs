@@ -14,9 +14,12 @@ namespace TrackingExample
         [Option(longName:"landmarks-output", shortName:'l', HelpText = "The path where the landmarks will be saved at")]
         public string? LandmarksPath { get; set; }
         
+        [Option(longName:"processed-landmarks-output", shortName:'p', HelpText = "The path where the processed landmarks will be saved at", Default = "multi_face_landmarks")]
+        public string? ProcessedLandmarksPath { get; set; }
+        
         [Option(longName:"output-stream", shortName:'o', HelpText = "The path where the landmarks will be saved at", Default = "multi_face_landmarks")]
         public string OutputStream { get; set; }
-        
+
         /// <summary>
         /// Ignore this
         /// </summary>
